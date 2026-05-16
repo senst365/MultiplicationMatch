@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>乘法消消樂</title>
+    <!-- 引入可愛的 Google 字體 -->
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #fff0f5; /* 粉嫩背景色 */
+            --board-bg: #ffffff; /* 盤面白底 */
+            --cell-size: 55px;
+            --gap: 8px;
+            --grid-width: 8; 
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            font-family: 'Mali', 'Comic Sans MS', '微軟正黑體', sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        h1 {
+            color: #ff6b81;
+            margin: 5px 0 0 0;
+            font-size: 2.2rem;
+            text-shadow: 2px 2px 0px #fff, 4px 4px 0px #ffc0cb; 
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: #747d8c;
+            margin-bottom: 15px;
+            background: rgba(255,255,255,0.8);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .stats-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 10px;
+            background: white;
+            padding: 10px 25px;
+            border-radius: 50px;
+            box-shadow: 0 6px 0px rgba(255, 107, 129, 0.2);
+            border: 4px solid #ff6b81;
+        }
+
+        .stat-box {
+            text-align: center;
+            min-width: 50px;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #a4b0be;
+            font-weight: bold;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2f3542;
+        }
+
+        #timer {
+            color: #ff4757;
+        }
+
+        .hint-button {
+            background-color: #ffa502;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #e67e22;
+            transition: transform 0.1s, box-shadow 0.1s;
+            font-family: inherit;
+        }
+
+        .hint-button:active {
+            transform: translateY(5px);
+            box-shadow: 0 0 0 #e67e22;
+        }
+
+        .menu-button {
+            background-color: #1e90ff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #005ce6;
+            transition: transform 0.1s, box-shadow 0.1s;
+            font-family: inherit;
+        }
+
+        .menu-button:active {
+            transform: translateY(5px);
+            box-shadow: 0 0 0 #005ce6;
+        }
+
+        .game-container {
+            background-color: var(--board-bg);
+            padding: 12px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1), inset 0 0 0 6px #7bed9f;
+            position: relative;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(var(--grid-width), var(--cell-size));
+            grid-template-rows: repeat(var(--grid-width), var(--cell-size));
+            gap: var(--gap);
+            padding: 4px;
+        }
+
+        .cell {
+            width: var(--cell-size);
+            height: var(--cell-size);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.2s, filter 0.2s;
+            position: relative;
+            text-shadow: 1px 2px 0 rgba(0,0,0,0.25);
+            overflow: hidden; 
+            white-space: nowrap;
+        }
+
+        .cell:active {
+            transform: scale(0.85);
+        }
+
+        .cell.selected {
+            border: 4px solid #fff;
+            transform: scale(1.15);
+            z-index: 10;
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
+        }
+
+        /* 提示閃爍效果 */
+        .cell.hint-target {
+            animation: hint-glow 0.8s infinite alternate;
+            z-index: 15;
+            border: 4px dashed #fff;
+        }
+
+        @keyframes hint-glow {
+            from { filter: brightness(1); transform: scale(1); }
+            to { filter: brightness(1.3); transform: scale(1.1); box-shadow: 0 0 15px #f1c40f;}
+        }
+
+        .cell.match-highlight {
+            animation: blink-pulse 0.8s ease-in-out forwards;
+            z-index: 20;
+            border: 4px solid #fff; 
+            box-shadow: 0 0 20px #ffeaa7;
+        }
+
+        @keyframes blink-pulse {
+            0% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.25); filter: brightness(1.4); }
+            100% { transform: scale(1); filter: brightness(1); }
+        }
+
+        .cell.matched {
+            animation: pop 0.4s ease-out forwards;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.4) rotate(15deg); opacity: 0.8; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(47, 53, 66, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px 25px;
+            border-radius: 30px;
+            text-align: center;
+            max-width: 90%;
+            width: 360px;
+            animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 8px solid #70a1ff;
+            box-shadow: 0 15px 0px rgba(0,0,0,0.2);
+        }
+
+        h2 { color: #ff4757; margin-bottom: 5px; font-size: 1.8rem; text-shadow: 1px 1px 0 #fff; }
+        
+        .mode-selector {
+            background: #f1f2f6;
+            padding: 15px;
+            border-radius: 15px;
+            margin: 15px 0 10px 0;
+            text-align: left;
+            border: 2px dashed #ced6e0;
+        }
+
+        .mode-label {
+            display: block;
+            margin: 8px 0;
+            cursor: pointer;
+            font-size: 1.05rem;
+            color: #2f3542;
+            font-weight: bold;
+        }
+
+        .time-selector {
+            background: #f1f2f6; 
+            padding: 15px; 
+            border-radius: 15px; 
+            margin: 10px 0; 
+            text-align: left;
+            border: 2px dashed #ced6e0;
+        }
+
+        .time-selector select {
+            font-family: 'Mali', sans-serif;
+            background-color: white;
+        }
+
+        .instruction-box {
+            background: #fff5f6;
+            padding: 12px;
+            border-radius: 15px;
+            margin: 10px 0;
+            font-size: 0.95rem;
+            color: #57606f;
+            text-align: left;
+            border: 2px solid #ffeaa7;
+        }
+        
+        .difficulty-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .difficulty-buttons button {
+            flex: 1;
+            padding: 15px 5px;
+            font-size: 0.95rem;
+            margin-top: 0;
+            color: white;
+            border: none;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: transform 0.1s;
+        }
+
+        .difficulty-buttons button:active {
+            transform: translateY(6px);
+            box-shadow: 0 0 0 transparent !important;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); opacity: 1; }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); }
+        }
+
+        @media (max-width: 500px) {
+            :root {
+                --cell-size: 11vw;
+                --gap: 1.5vw;
+            }
+            h1 { font-size: 1.6rem; }
+            .cell { font-size: 3.5vw; }
+            .stats-container { gap: 10px; padding: 10px 15px; border-width: 3px; }
+            .hint-button, .menu-button { padding: 8px 12px; font-size: 0.85rem; }
+            .stat-box { min-width: 40px; }
+            .modal-content { padding: 20px; border-width: 6px; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>✖️ 乘法消消樂</h1>
+    <div class="subtitle">把答案相同的乘法或數字連起來！</div>
+
+    <div class="stats-container">
+        <div class="stat-box">
+            <div class="stat-label">得分</div>
+            <div class="stat-value" id="score">0</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">時間</div>
+            <div class="stat-value" id="timer">120</div>
+        </div>
+        <button id="hint-btn" class="hint-button" onclick="showHint()">💡 提示</button>
+        <button id="menu-btn" class="menu-button" onclick="returnToMenu()">🏠 主選單</button>
+    </div>
+
+    <div class="game-container">
+        <div class="grid" id="grid"></div>
+    </div>
+
+    <div class="modal" id="modal" style="display: flex;">
+        <div class="modal-content">
+            <h2 id="modal-title">準備好了嗎？</h2>
+            
+            <div class="mode-selector">
+                <div style="color: #7f8c8d; font-size: 0.85rem; margin-bottom: 5px;">請選擇遊玩模式：</div>
+                <label class="mode-label">
+                    <input type="radio" name="playMode" value="swap" checked> 🔄 傳統互換 (享連鎖快感)
+                </label>
+                <label class="mode-label">
+                    <input type="radio" name="playMode" value="click"> 👆 點擊相鄰 (節奏明快)
+                </label>
+            </div>
+
+            <div class="time-selector">
+                <div style="color: #7f8c8d; font-size: 0.85rem; margin-bottom: 5px;">請設定遊戲時間：</div>
+                <select id="time-select" style="width: 100%; padding: 8px; font-size: 1rem; border-radius: 5px; border: 1px solid #bdc3c7; color: #2c3e50; font-weight: bold; cursor: pointer;">
+                    <option value="60">60 秒 (1 分鐘)</option>
+                    <option value="120" selected>120 秒 (2 分鐘) - 預設</option>
+                    <option value="180">180 秒 (3 分鐘)</option>
+                    <option value="300">300 秒 (5 分鐘)</option>
+                </select>
+            </div>
+
+            <div class="instruction-box">
+                <p><b>顏色只是裝飾</b>。仔細看算式和數字！</p>
+                <p id="instruction-text"><b>互換</b>相鄰的球，將 <b>2 個</b> 或以上答案相等的連成線，會引發掉落連鎖！</p>
+                <p style="color:#e74c3c; font-size:0.8rem; margin-top:5px;">※ 找不到時可按右上角「💡 提示」(按一次扣10分)</p>
+            </div>
+
+            <p id="modal-score-display" style="font-weight:bold; color: #e67e22; margin: 5px 0;"></p>
+            
+            <div class="difficulty-buttons" id="start-buttons">
+                <button onclick="startGame(4)" style="background: #1abc9c; box-shadow: 0 4px 0 #16a085;">極簡 (4x4)</button>
+                <button onclick="startGame(5)" style="background: #3498db; box-shadow: 0 4px 0 #2980b9;">簡單 (5x5)</button>
+                <button onclick="startGame(8)" style="background: #e74c3c; box-shadow: 0 4px 0 #c0392b;">挑戰 (8x8)</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const grid = document.getElementById('grid');
+            const scoreDisplay = document.getElementById('score');
+            const timerDisplay = document.getElementById('timer');
+            const modal = document.getElementById('modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalScoreDisplay = document.getElementById('modal-score-display');
+            const modeRadios = document.querySelectorAll('input[name="playMode"]');
+            const instructionText = document.getElementById('instruction-text');
+            
+            let width = 8; 
+            const squares = [];
+            let score = 0;
+            let timeLeft = 120;
+            let timerId;
+            let gameActive = false;
+            let isProcessing = false;
+            let currentMode = 'swap';
+            let activeFamilies = []; 
+
+            // 動態更新說明文字
+            modeRadios.forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    if(e.target.value === 'swap') {
+                        instructionText.innerHTML = '<b>互換</b>相鄰的球，將 <b>2 個</b> 或以上答案相等的連成線，會引發掉落連鎖！';
+                    } else {
+                        instructionText.innerHTML = '<b>點擊</b>相鄰且答案相同的球（至少2顆），即可直接整塊消除！';
+                    }
+                });
+            });
+
+            // 6組乘法題目
+            const multiplicationFamilies = [
+                { id: 'prod12', value: 12, labels: ['3×4', '4×3', '2×6', '6×2', '12'] },
+                { id: 'prod16', value: 16, labels: ['4×4', '2×8', '8×2', '16'] },
+                { id: 'prod18', value: 18, labels: ['3×6', '6×3', '2×9', '9×2', '18'] },
+                { id: 'prod20', value: 20, labels: ['4×5', '5×4', '2×10', '20'] },
+                { id: 'prod24', value: 24, labels: ['4×6', '6×4', '3×8', '8×3', '24'] },
+                { id: 'prod36', value: 36, labels: ['4×9', '9×4', '6×6', '36'] }
+            ];
+
+            let selectedSquareId = null;
+            const decoColors = ['#e67e22', '#e74c3c', '#8e44ad', '#2980b9', '#16a085', '#27ae60', '#d35400', '#7f8c8d'];
+
+            function getRandomItem() {
+                const family = activeFamilies[Math.floor(Math.random() * activeFamilies.length)];
+                const label = family.labels[Math.floor(Math.random() * family.labels.length)];
+                return { familyId: family.id, label: label };
+            }
+
+            function createBoard() {
+                grid.innerHTML = '';
+                squares.length = 0;
+                const totalCells = width * width;
+
+                for (let i = 0; i < totalCells; i++) {
+                    const square = document.createElement('div');
+                    square.setAttribute('id', i);
+                    square.classList.add('cell');
+                    
+                    let randomIdx = Math.floor(Math.random() * activeFamilies.length);
+                    let currentFamily = activeFamilies[randomIdx];
+                    
+                    if (currentMode === 'swap') {
+                        let leftFamilyId = (i % width !== 0) ? squares[i - 1].getAttribute('data-family') : null;
+                        let topFamilyId = (i >= width) ? squares[i - width].getAttribute('data-family') : null;
+
+                        while (currentFamily.id === leftFamilyId || currentFamily.id === topFamilyId) {
+                            randomIdx = Math.floor(Math.random() * activeFamilies.length);
+                            currentFamily = activeFamilies[randomIdx];
+                        }
+                    }
+
+                    const label = currentFamily.labels[Math.floor(Math.random() * currentFamily.labels.length)];
+                    applyItemData(square, { familyId: currentFamily.id, label: label });
+
+                    grid.appendChild(square);
+                    squares.push(square);
+
+                    square.addEventListener('click', () => clickSquare(i));
+                }
+
+                if (currentMode === 'swap') {
+                    if (!findPossibleSwapMove()) createBoard();
+                } else {
+                    if (!findPossibleClickMove()) createBoard();
+                }
+                
+                isProcessing = false;
+            }
+
+            function applyItemData(element, data) {
+                const randomColor = decoColors[Math.floor(Math.random() * decoColors.length)];
+                element.style.backgroundColor = randomColor; 
+                element.innerText = data.label;
+                element.setAttribute('data-family', data.familyId);
+                element.style.color = 'white';
+                
+                if(data.familyId) {
+                    element.style.boxShadow = 'inset -3px -5px 10px rgba(0,0,0,0.25), inset 2px 3px 5px rgba(255,255,255,0.4)';
+                } else {
+                    element.style.boxShadow = 'none';
+                    element.style.backgroundColor = 'transparent'; 
+                }
+            }
+
+            function clickSquare(id) {
+                if (!gameActive || isProcessing) return;
+
+                squares.forEach(sq => sq.classList.remove('hint-target'));
+
+                if (currentMode === 'swap') {
+                    const square = squares[id];
+
+                    if (selectedSquareId === null) {
+                        selectedSquareId = id;
+                        square.classList.add('selected');
+                    } else if (selectedSquareId === id) {
+                        square.classList.remove('selected');
+                        selectedSquareId = null;
+                    } else {
+                        squares[selectedSquareId].classList.remove('selected');
+                        let currentId = id;
+                        let prevId = selectedSquareId;
+                        selectedSquareId = null;
+                        
+                        if (isValidSwapMove(prevId, currentId)) {
+                            swapSquares(prevId, currentId);
+                        } else {
+                            selectedSquareId = id;
+                            squares[id].classList.add('selected');
+                        }
+                    }
+                } else {
+                    const targetFamily = squares[id].getAttribute('data-family');
+                    if (!targetFamily) return;
+
+                    const cluster = getConnectedCluster(id, targetFamily);
+
+                    if (cluster.length >= 2) {
+                        isProcessing = true;
+                        cluster.forEach(index => squares[index].classList.add('match-highlight'));
+
+                        setTimeout(() => {
+                            score += cluster.length * 10;
+                            scoreDisplay.innerText = score;
+
+                            cluster.forEach(index => {
+                                squares[index].classList.remove('match-highlight'); 
+                                squares[index].classList.add('matched'); 
+                            });
+
+                            setTimeout(() => {
+                                cluster.forEach(index => {
+                                    squares[index].classList.remove('matched');
+                                    squares[index].removeAttribute('data-family'); 
+                                    squares[index].innerText = '';
+                                    squares[index].style.backgroundColor = 'transparent'; 
+                                    squares[index].style.boxShadow = 'none';
+                                });
+                                moveDown();
+                            }, 400); 
+                        }, 400); 
+                    }
+                }
+            }
+
+            function getNeighbors(index) {
+                const neighbors = [];
+                const r = Math.floor(index / width);
+                const c = index % width;
+
+                if (r > 0) neighbors.push(index - width); 
+                if (r < width - 1) neighbors.push(index + width); 
+                if (c > 0) neighbors.push(index - 1); 
+                if (c < width - 1) neighbors.push(index + 1); 
+                return neighbors;
+            }
+
+            function getConnectedCluster(startIndex, familyId) {
+                const visited = new Set();
+                const cluster = [];
+                const queue = [startIndex];
+
+                while (queue.length > 0) {
+                    const current = queue.shift();
+                    if (visited.has(current)) continue;
+
+                    visited.add(current);
+                    cluster.push(current);
+
+                    const neighbors = getNeighbors(current);
+                    for (let n of neighbors) {
+                        if (!visited.has(n) && squares[n].getAttribute('data-family') === familyId) {
+                            queue.push(n);
+                        }
+                    }
+                }
+                return cluster;
+            }
+
+            function findPossibleClickMove() {
+                const totalCells = width * width;
+                for (let i = 0; i < totalCells; i++) {
+                    const family = squares[i].getAttribute('data-family');
+                    if (family) {
+                        const neighbors = getNeighbors(i);
+                        for (let n of neighbors) {
+                            if (squares[n].getAttribute('data-family') === family) return [i, n];
+                        }
+                    }
+                }
+                return null;
+            }
+
+            function isValidSwapMove(id1, id2) {
+                const validMoves = getNeighbors(id1);
+                return validMoves.includes(id2);
+            }
+
+            function swapSquares(id1, id2) {
+                const family1 = squares[id1].getAttribute('data-family');
+                const text1 = squares[id1].innerText;
+                const color1 = squares[id1].style.backgroundColor;
+
+                const family2 = squares[id2].getAttribute('data-family');
+                const text2 = squares[id2].innerText;
+                const color2 = squares[id2].style.backgroundColor;
+
+                setSquareVisuals(squares[id1], family2, text2, color2);
+                setSquareVisuals(squares[id2], family1, text1, color1);
+
+                const matchFound = checkMatches();
+
+                if (!matchFound) {
+                    setTimeout(() => {
+                        setSquareVisuals(squares[id1], family1, text1, color1);
+                        setSquareVisuals(squares[id2], family2, text2, color2);
+                    }, 200);
+                } else {
+                    setTimeout(() => resolveMatches(true), 100);
+                }
+            }
+
+            function checkMatches() {
+                const totalCells = width * width;
+                for (let i = 0; i < totalCells; i++) {
+                    if (i % width < width - 1) {
+                        let rowOfTwo = [i, i + 1];
+                        let decidedFamily = squares[i].getAttribute('data-family');
+                        if (rowOfTwo.every(index => squares[index].getAttribute('data-family') === decidedFamily && decidedFamily)) return true;
+                    }
+                }
+                for (let i = 0; i < totalCells - width; i++) {
+                    let columnOfTwo = [i, i + width];
+                    let decidedFamily = squares[i].getAttribute('data-family');
+                    if (columnOfTwo.every(index => squares[index].getAttribute('data-family') === decidedFamily && decidedFamily)) return true;
+                }
+                return false;
+            }
+
+            function simulateSwap(id1, id2) {
+                let fam1 = squares[id1].getAttribute('data-family');
+                let fam2 = squares[id2].getAttribute('data-family');
+                
+                squares[id1].setAttribute('data-family', fam2);
+                squares[id2].setAttribute('data-family', fam1);
+                
+                let isMatch = checkMatches();
+                
+                squares[id1].setAttribute('data-family', fam1);
+                squares[id2].setAttribute('data-family', fam2);
+                
+                return isMatch;
+            }
+
+            function findPossibleSwapMove() {
+                const totalCells = width * width;
+                for (let i = 0; i < totalCells; i++) {
+                    if (i % width < width - 1) {
+                        if (simulateSwap(i, i + 1)) return [i, i + 1];
+                    }
+                    if (i < totalCells - width) {
+                        if (simulateSwap(i, i + width)) return [i, i + width];
+                    }
+                }
+                return null;
+            }
+
+            function resolveMatches(addPoints) {
+                let matchedIndices = new Set();
+                const totalCells = width * width;
+
+                for (let i = 0; i < totalCells; i++) {
+                    if (i % width < width - 1) {
+                        let rowOfTwo = [i, i + 1];
+                        let decidedFamily = squares[i].getAttribute('data-family');
+                        if (rowOfTwo.every(index => squares[index].getAttribute('data-family') === decidedFamily && decidedFamily)) {
+                            rowOfTwo.forEach(index => matchedIndices.add(index));
+                        }
+                    }
+                }
+
+                for (let i = 0; i < totalCells - width; i++) {
+                    let columnOfTwo = [i, i + width];
+                    let decidedFamily = squares[i].getAttribute('data-family');
+                    if (columnOfTwo.every(index => squares[index].getAttribute('data-family') === decidedFamily && decidedFamily)) {
+                        columnOfTwo.forEach(index => matchedIndices.add(index));
+                    }
+                }
+
+                if (matchedIndices.size > 0) {
+                    isProcessing = true; 
+
+                    matchedIndices.forEach(index => {
+                        squares[index].classList.add('match-highlight');
+                    });
+
+                    setTimeout(() => {
+                        if (addPoints) {
+                            score += matchedIndices.size * 10;
+                            scoreDisplay.innerText = score;
+                        }
+
+                        matchedIndices.forEach(index => {
+                            squares[index].classList.remove('match-highlight'); 
+                            squares[index].classList.add('matched'); 
+                        });
+
+                        setTimeout(() => {
+                            matchedIndices.forEach(index => {
+                                squares[index].classList.remove('matched');
+                                squares[index].removeAttribute('data-family'); 
+                                squares[index].innerText = '';
+                                squares[index].style.backgroundColor = 'transparent'; 
+                                squares[index].style.boxShadow = 'none';
+                            });
+                            moveDown();
+                        }, 400); 
+
+                    }, 600); 
+                    
+                    return true;
+                } else {
+                    isProcessing = false; 
+                    if (gameActive && !findPossibleSwapMove()) {
+                        createBoard();
+                    }
+                    return false;
+                }
+            }
+
+            function setSquareVisuals(element, family, text, color) {
+                element.setAttribute('data-family', family);
+                element.innerText = text;
+                element.style.backgroundColor = color;
+                element.style.color = 'white';
+                if(family) {
+                    element.style.boxShadow = 'inset -3px -5px 10px rgba(0,0,0,0.25), inset 2px 3px 5px rgba(255,255,255,0.4)';
+                } else {
+                    element.style.boxShadow = 'none';
+                    element.style.backgroundColor = 'transparent';
+                }
+            }
+
+            function moveDown() {
+                for (let i = 0; i < width; i++) {
+                    let emptySlots = 0;
+                    for (let j = width - 1; j >= 0; j--) {
+                        let index = j * width + i;
+                        if (!squares[index].getAttribute('data-family')) {
+                            emptySlots++;
+                        } else if (emptySlots > 0) {
+                            let targetIndex = (j + emptySlots) * width + i;
+                            
+                            const family = squares[index].getAttribute('data-family');
+                            const text = squares[index].innerText;
+                            const color = squares[index].style.backgroundColor;
+
+                            setSquareVisuals(squares[targetIndex], family, text, color);
+                            
+                            squares[index].removeAttribute('data-family');
+                            squares[index].style.backgroundColor = 'transparent';
+                            squares[index].innerText = '';
+                            squares[index].style.boxShadow = 'none';
+                        }
+                    }
+                    
+                    for (let j = 0; j < emptySlots; j++) {
+                        let index = j * width + i;
+                        const data = getRandomItem();
+                        applyItemData(squares[index], data);
+                    }
+                }
+
+                if (currentMode === 'swap') {
+                    setTimeout(() => resolveMatches(true), 250);
+                } else {
+                    setTimeout(() => {
+                        if (gameActive && !findPossibleClickMove()) {
+                            createBoard();
+                        }
+                        isProcessing = false;
+                    }, 250);
+                }
+            }
+
+            window.showHint = function() {
+                if (!gameActive || isProcessing) return;
+                
+                squares.forEach(sq => sq.classList.remove('hint-target'));
+
+                score = Math.max(0, score - 10);
+                scoreDisplay.innerText = score;
+                scoreDisplay.style.color = '#e74c3c'; 
+                setTimeout(() => scoreDisplay.style.color = '#2f3542', 500);
+
+                let move;
+                if (currentMode === 'swap') {
+                    move = findPossibleSwapMove();
+                    if (move) {
+                        squares[move[0]].classList.add('hint-target');
+                        squares[move[1]].classList.add('hint-target');
+                    }
+                } else {
+                    move = findPossibleClickMove();
+                    if (move) {
+                        const family = squares[move[0]].getAttribute('data-family');
+                        const cluster = getConnectedCluster(move[0], family);
+                        cluster.forEach(index => squares[index].classList.add('hint-target'));
+                    }
+                }
+
+                if (move) {
+                    setTimeout(() => {
+                        squares.forEach(sq => sq.classList.remove('hint-target'));
+                    }, 2000);
+                } else {
+                    createBoard(); 
+                }
+            }
+
+            window.startGame = function(selectedWidth) {
+                width = selectedWidth || 8;
+                document.documentElement.style.setProperty('--grid-width', width);
+
+                activeFamilies = [...multiplicationFamilies];
+                currentMode = document.querySelector('input[name="playMode"]:checked').value;
+
+                modal.style.display = 'none';
+                score = 0;
+                
+                const selectedTime = parseInt(document.getElementById('time-select').value, 10);
+                timeLeft = isNaN(selectedTime) ? 120 : selectedTime;
+
+                scoreDisplay.innerText = score;
+                timerDisplay.innerText = timeLeft;
+                gameActive = true;
+                isProcessing = false;
+                selectedSquareId = null;
+                
+                createBoard();
+
+                if (timerId) clearInterval(timerId);
+                timerId = setInterval(() => {
+                    timeLeft--;
+                    timerDisplay.innerText = timeLeft;
+                    if (timeLeft <= 0) {
+                        endGame();
+                    }
+                }, 1000);
+            }
+
+            window.returnToMenu = function() {
+                clearInterval(timerId);
+                gameActive = false;
+                modalTitle.innerText = "準備好了嗎？";
+                modalScoreDisplay.innerText = "";
+                modal.style.display = 'flex';
+            }
+
+            function endGame() {
+                clearInterval(timerId);
+                gameActive = false;
+                modalTitle.innerText = "時間到！做得真棒！";
+                modalScoreDisplay.innerText = `你的得分是：${score}`;
+                modal.style.display = 'flex';
+            }
+        });
+    </script>
+</body>
+</html>
