@@ -4,24 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
     <title>乘法消消樂</title>
-    <!-- 引入可愛的 Google 字體 -->
-    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@500;700&display=swap" rel="stylesheet">
+    <!-- 改為引入台灣常見標準字體 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-color: #fff0f5; 
             --board-bg: #ffffff;
             --grid-width: 8;
-            /* 讓遊戲盤面永遠保持正方形，並自動適應螢幕較窄的那一邊 */
-            --board-size: min(92vw, 60vh, 550px); 
+            /* 修改計算方式，扣除上方 UI 高度 (220px)，確保絕對不被裁切 */
+            --board-size: min(92vw, calc(100vh - 220px), 550px); 
             --gap: clamp(2px, 1.5vmin, 8px);
-            --cell-font-scale: 0.35;
+            --cell-font-scale: 0.26; /* 進一步縮小字體比例，確保對應圓形安全框 */
             --cell-font-max: 24px;
         }
 
         body.zoom-mode {
-            /* 放大模式下，允許遊戲盤面佔用更多螢幕空間 */
-            --board-size: min(96vw, 85vh, 800px); 
-            --cell-font-scale: 0.45;
+            /* 放大模式下，也要確保加上 UI 高度後不超過螢幕 */
+            --board-size: min(96vw, calc(100vh - 180px), 800px); 
+            --cell-font-scale: 0.32; /* 調整放大比例 */
             --cell-font-max: 42px;
         }
 
@@ -29,11 +29,12 @@
             box-sizing: border-box;
             user-select: none;
             -webkit-user-select: none;
-            touch-action: manipulation; /* 增進觸控靈敏度 */
+            touch-action: manipulation; 
         }
 
         body {
-            font-family: 'Mali', 'Comic Sans MS', '微軟正黑體', sans-serif;
+            /* 使用標準黑體字，確保數字寫法是台灣學生最習慣的樣式 */
+            font-family: 'Noto Sans TC', '微軟正黑體', 'Microsoft JhengHei', sans-serif;
             background-color: var(--bg-color);
             display: flex;
             flex-direction: column;
@@ -42,7 +43,8 @@
             min-height: 100vh;
             margin: 0;
             padding: 10px;
-            overflow: hidden;
+            overflow-y: auto; /* 解除鎖定，允許滾動，防止小螢幕或特殊比例被裁切 */
+            overflow-x: hidden;
         }
 
         h1 {
@@ -169,8 +171,9 @@
             transition: transform 0.2s, filter 0.2s;
             position: relative;
             text-shadow: 1px 2px 0 rgba(0,0,0,0.3);
-            overflow: hidden; 
+            /* 移除 overflow: hidden 避免文字邊緣被圓形切斷 */
             white-space: nowrap;
+            letter-spacing: -0.5px; /* 稍微縮小字距，讓算式更集中 */
         }
 
         .cell:active { transform: scale(0.85); }
@@ -236,7 +239,7 @@
         .settings-group select {
             width: 100%; padding: 8px; font-size: 0.95rem; border-radius: 10px; 
             border: 2px solid #bdc3c7; color: #2c3e50; font-weight: bold; cursor: pointer;
-            font-family: 'Mali', sans-serif;
+            font-family: 'Noto Sans TC', '微軟正黑體', sans-serif;
         }
 
         .instruction-box { background: #fff5f6; padding: 10px; border-radius: 15px; margin: 10px 0; font-size: 0.9rem; color: #57606f; text-align: left; border: 2px solid #ffeaa7; }
