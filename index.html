@@ -545,14 +545,21 @@
 
             function findPossibleClickMove() {
                 const totalCells = width * width;
+                const possibleMoves = [];
                 for (let i = 0; i < totalCells; i++) {
                     const family = squares[i].getAttribute('data-family');
                     if (family) {
                         const neighbors = getNeighbors(i);
                         for (let n of neighbors) {
-                            if (squares[n].getAttribute('data-family') === family) return [i, n];
+                            if (squares[n].getAttribute('data-family') === family) {
+                                possibleMoves.push([i, n]);
+                            }
                         }
                     }
+                }
+                // 收集所有可走步數後隨機回傳一組，避免提示永遠集中在第一排
+                if (possibleMoves.length > 0) {
+                    return possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
                 }
                 return null;
             }
@@ -613,9 +620,18 @@
 
             function findPossibleSwapMove() {
                 const totalCells = width * width;
+                const possibleMoves = [];
                 for (let i = 0; i < totalCells; i++) {
-                    if (i % width < width - 1) if (simulateSwap(i, i + 1)) return [i, i + 1];
-                    if (i < totalCells - width) if (simulateSwap(i, i + width)) return [i, i + width];
+                    if (i % width < width - 1) {
+                        if (simulateSwap(i, i + 1)) possibleMoves.push([i, i + 1]);
+                    }
+                    if (i < totalCells - width) {
+                        if (simulateSwap(i, i + width)) possibleMoves.push([i, i + width]);
+                    }
+                }
+                // 收集所有可走步數後隨機回傳一組，避免提示永遠集中在第一排
+                if (possibleMoves.length > 0) {
+                    return possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
                 }
                 return null;
             }
@@ -820,6 +836,7 @@
                 modalScoreDisplay.innerText = `你的得分是：${score}`;
                 modal.style.display = 'flex';
             }
+
         });
     </script>
 </body>
